@@ -7,7 +7,6 @@
 //
 
 // MARK: JSONPathType
-
 /// A protocol used to define a path within an instance of `JSON` that leads to some desired value.
 ///
 /// A custom type, such as a `RawRepresentable` enum, may be made to conform to `JSONPathType`
@@ -20,7 +19,7 @@ public protocol JSONPathType {
     ///
     /// Upon failure, implementers should throw an error from `JSON.Error`.
     func value(in dictionary: [String : JSON]) throws -> JSON
-
+    
     /// Use `self` to index into an `array`.
     ///
     /// Unlike Swift arrays, attempting to index outside the collection's bounds
@@ -31,26 +30,26 @@ public protocol JSONPathType {
 }
 
 extension JSONPathType {
-
+    
     /// The default behavior for keying into a dictionary is to throw
     /// `JSON.Error.UnexpectedSubscript`.
     public func value(in dictionary: [String : JSON]) throws -> JSON {
         throw JSON.Error.unexpectedSubscript(type: Self.self)
     }
-
+    
     /// The default behavior for indexing into an array is to throw
     /// `JSON.Error.UnexpectedSubscript`.
     public func value(in array: [JSON]) throws -> JSON {
         throw JSON.Error.unexpectedSubscript(type: Self.self)
     }
-
+    
 }
 
 extension String: JSONPathType {
-
+    
     /// A method used to retrieve a value from a given dictionary for a specific key.
     /// - parameter dictionary: A `Dictionary` with `String` keys and `JSON` values.
-    /// - throws: `.KeyNotFound` with an associated value of `self`, where `self` is a `String`, 
+    /// - throws: `.KeyNotFound` with an associated value of `self`, where `self` is a `String`,
     ///           should the key not be present within the `JSON`.
     /// - returns: The `JSON` value associated with the given key.
     public func value(in dictionary: [String : JSON]) throws -> JSON {
@@ -59,14 +58,14 @@ extension String: JSONPathType {
         }
         return next
     }
-
+    
 }
 
 extension Int: JSONPathType {
-
+    
     /// A method used to retrieve a value from a given array for a specific index.
     /// - parameter array: An `Array` of `JSON`.
-    /// - throws: `.IndexOutOfBounds` with an associated value of `self`, where `self` is an `Int`, 
+    /// - throws: `.IndexOutOfBounds` with an associated value of `self`, where `self` is an `Int`,
     ///           should the index not be within the valid range for the array of `JSON`.
     /// - returns: The `JSON` value found at the given index.
     public func value(in array: [JSON]) throws -> JSON {
@@ -75,17 +74,16 @@ extension Int: JSONPathType {
         }
         return array[self]
     }
-
+    
 }
 
 // MARK: - Subscripting core
-
 private extension JSON {
-
+    
     enum SubscriptError: Swift.Error {
         case subscriptIntoNull(JSONPathType)
     }
-
+    
     func value(for pathFragment: JSONPathType, detectingNull: Bool) throws -> JSON {
         switch self {
         case .null where detectingNull:
@@ -98,7 +96,7 @@ private extension JSON {
             throw Error.unexpectedSubscript(type: type(of: pathFragment))
         }
     }
-
+    
     func value(at path: [JSONPathType], detectingNull: Bool = false) throws -> JSON {
         var result = self
         for pathFragment in path {
@@ -106,27 +104,25 @@ private extension JSON {
         }
         return result
     }
-
+    
 }
 
 // MARK: - Subscripting operator
-
 extension JSON {
-
+    
     public subscript(key: String) -> JSON? {
         return try? value(for: key, detectingNull: false)
     }
-
+    
     public subscript(index: Int) -> JSON? {
         return try? value(for: index, detectingNull: false)
     }
-
+    
 }
 
 // MARK: - Simple member unpacking
-
 extension JSON {
-
+    
     /// Attempts to decode into the returning type from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`.
     /// - parameter type: If the context this method is called from does not
@@ -145,7 +141,7 @@ extension JSON {
     public func decode<Decoded: JSONDecodable>(at path: JSONPathType..., type: Decoded.Type = Decoded.self) throws -> Decoded {
         return try Decoded(json: value(at: path))
     }
-
+    
     /// Retrieves a `Double` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - returns: A floating-point `Double`
@@ -154,7 +150,7 @@ extension JSON {
     public func getDouble(at path: JSONPathType...) throws -> Double {
         return try Double(json: value(at: path))
     }
-
+    
     /// Retrieves an `Int` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - returns: A numeric `Int`
@@ -163,7 +159,16 @@ extension JSON {
     public func getInt(at path: JSONPathType...) throws -> Int {
         return try Int(json: value(at: path))
     }
-
+    
+    /// Retrieves an `UInt` from a path into JSON.
+    /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
+    /// - returns: A numeric `UInt`
+    /// - throws: One of the `JSON.Error` cases thrown by `decode(at:type:)`.
+    /// - seealso: `JSON.decode(at:type:)`
+    public func getUInt(at path: JSONPathType...) throws -> UInt {
+        return try UInt(json: value(at: path))
+    }
+    
     /// Retrieves a `String` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - returns: A textual `String`
@@ -172,7 +177,7 @@ extension JSON {
     public func getString(at path: JSONPathType...) throws -> String {
         return try String(json: value(at: path))
     }
-
+    
     /// Retrieves a `Bool` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - returns: A truthy `Bool`
@@ -181,7 +186,7 @@ extension JSON {
     public func getBool(at path: JSONPathType...) throws -> Bool {
         return try Bool(json: value(at: path))
     }
-
+    
     /// Retrieves a `[JSON]` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - returns: An `Array` of `JSON` elements
@@ -190,7 +195,7 @@ extension JSON {
     public func getArray(at path: JSONPathType...) throws -> [JSON] {
         return try JSON.getArray(from: value(at: path))
     }
-
+    
     /// Attempts to decode many values from a descendant JSON array at a path
     /// into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
@@ -204,7 +209,7 @@ extension JSON {
     public func decodedArray<Decoded: JSONDecodable>(at path: JSONPathType..., type: Decoded.Type = Decoded.self) throws -> [Decoded] {
         return try JSON.decodedArray(from: value(at: path))
     }
-
+    
     /// Retrieves a `[String: JSON]` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - returns: An `Dictionary` of `String` mapping to `JSON` elements
@@ -227,16 +232,15 @@ extension JSON {
     public func decodedDictionary<Decoded: JSONDecodable>(at path: JSONPathType..., type: Decoded.Type = Decoded.self) throws -> [String: Decoded] {
         return try JSON.decodedDictionary(from: value(at: path))
     }
-
+    
 }
 
 // MARK: - NotFound-Or-Null-to-Optional unpacking
-
 extension JSON {
     
-    /// An `OptionSet` used to represent the different options available for subscripting `JSON` with `null` values or missing keys.
-    /// * `.nullBecomesNil` - Treat `null` values as `nil`.
-    /// * `.missingKeyBecomesNil` - Treat missing keys as `nil`.
+    /// An `OptionSetType` used to represent the different options available for subscripting `JSON` with `null` values or missing keys.
+    /// * `.NullBecomesNil` - Treat `null` values as `nil`.
+    /// * `.MissingKeyBecomesNil` - Treat missing keys as `nil`.
     public struct SubscriptingOptions: OptionSet {
         public let rawValue: Int
         public init(rawValue: Int) {
@@ -244,14 +248,14 @@ extension JSON {
         }
         
         /// Treat `null` values as `nil`.
-        public static let nullBecomesNil = SubscriptingOptions(rawValue: 1 << 0)
+        public static let NullBecomesNil = SubscriptingOptions(rawValue: 1 << 0)
         /// Treat missing keys as `nil`.
-        public static let missingKeyBecomesNil = SubscriptingOptions(rawValue: 1 << 1)
+        public static let MissingKeyBecomesNil = SubscriptingOptions(rawValue: 1 << 1)
     }
     
     fileprivate func mapOptional<Value>(at path: [JSONPathType], alongPath options: SubscriptingOptions, transform: (JSON) throws -> Value) throws -> Value? {
-        let detectNull = options.contains(.nullBecomesNil)
-        let detectNotFound = options.contains(.missingKeyBecomesNil)
+        let detectNull = options.contains(.NullBecomesNil)
+        let detectNotFound = options.contains(.MissingKeyBecomesNil)
         var json: JSON?
         do {
             json = try value(at: path, detectingNull: detectNull)
@@ -269,7 +273,7 @@ extension JSON {
 }
 
 extension JSON {
-
+    
     /// Decodes a `JSON` instance if it is not `.Null`, throws otherwise.
     /// - parameter json: An instance of `JSON`.
     /// - returns: An instance of some type that conforms to `JSONDecodable`.
@@ -301,7 +305,7 @@ extension JSON {
     public func decode<Decoded: JSONDecodable>(at path: JSONPathType..., alongPath options: SubscriptingOptions, type: Decoded.Type = Decoded.self) throws -> Decoded? {
         return try mapOptional(at: path, alongPath: options, transform: JSON.getDecoded)
     }
-
+    
     /// Optionally retrieves a `Double` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`.
     /// - parameter alongPath: Options that control what should be done with values that are `null` or keys that are missing.
@@ -318,7 +322,7 @@ extension JSON {
     public func getDouble(at path: JSONPathType..., alongPath options: SubscriptingOptions) throws -> Double? {
         return try mapOptional(at: path, alongPath: options, transform: Double.init)
     }
-
+    
     /// Optionally retrieves a `Int` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - parameter alongPath: Options that control what should be done with values that are `null` or keys that are missing.
@@ -335,7 +339,24 @@ extension JSON {
     public func getInt(at path: JSONPathType..., alongPath options: SubscriptingOptions) throws -> Int? {
         return try mapOptional(at: path, alongPath: options, transform: Int.init)
     }
-
+    
+    /// Optionally retrieves a `UInt` from a path into JSON.
+    /// - parameter path: 0 or more `String` or `UInt` that subscript the `JSON`
+    /// - parameter alongPath: Options that control what should be done with values that are `null` or keys that are missing.
+    /// - returns: A numeric `UInt` if a value could be found, otherwise `nil`.
+    /// - throws: One of the following errors contained in `JSON.Error`:
+    ///   * `KeyNotFound`: A key `path` does not exist inside a descendant
+    ///     `JSON` dictionary.
+    ///   * `IndexOutOfBounds`: An index `path` is outside the bounds of a
+    ///     descendant `JSON` array.
+    ///   * `UnexpectedSubscript`: A `path` item cannot be used with the
+    ///     corresponding `JSON` value.
+    ///   * `TypeNotConvertible`: The target value's type inside of the `JSON`
+    ///     instance does not match the decoded value.
+    public func getUInt(at path: JSONPathType..., alongPath options: SubscriptingOptions) throws -> UInt? {
+        return try mapOptional(at: path, alongPath: options, transform: UInt.init)
+    }
+    
     /// Optionally retrieves a `String` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - parameter alongPath: Options that control what should be done with values that are `null` or keys that are missing.
@@ -352,7 +373,7 @@ extension JSON {
     public func getString(at path: JSONPathType..., alongPath options: SubscriptingOptions) throws -> String? {
         return try mapOptional(at: path, alongPath: options, transform: String.init)
     }
-
+    
     /// Optionally retrieves a `Bool` from a path into JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - parameter alongPath: Options that control what should be done with values that are `null` or keys that are missing.
@@ -369,7 +390,7 @@ extension JSON {
     public func getBool(at path: JSONPathType..., alongPath options: SubscriptingOptions) throws -> Bool? {
         return try mapOptional(at: path, alongPath: options, transform: Bool.init)
     }
-
+    
     /// Optionally retrieves a `[JSON]` from a path into the recieving structure.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
     /// - parameter alongPath: Options that control what should be done with values that are `null` or keys that are missing.
@@ -387,7 +408,7 @@ extension JSON {
     public func getArray(at path: JSONPathType..., alongPath options: SubscriptingOptions) throws -> [JSON]? {
         return try mapOptional(at: path, alongPath: options, transform: JSON.getArray)
     }
-
+    
     /// Optionally decodes many values from a descendant array at a path into
     /// JSON.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
@@ -409,7 +430,7 @@ extension JSON {
     public func decodedArray<Decoded: JSONDecodable>(at path: JSONPathType..., alongPath options: SubscriptingOptions, type: Decoded.Type = Decoded.self) throws -> [Decoded]? {
         return try mapOptional(at: path, alongPath: options, transform: JSON.decodedArray)
     }
-
+    
     /// Optionally retrieves a `[String: JSON]` from a path into the recieving
     /// structure.
     /// - parameter path: 0 or more `String` or `Int` that subscript the `JSON`
@@ -451,15 +472,14 @@ extension JSON {
     public func decodedDictionary<Decoded: JSONDecodable>(at path: JSONPathType..., alongPath options: SubscriptingOptions, type: Decoded.Type = Decoded.self) throws -> [String: Decoded]? {
         return try mapOptional(at: path, alongPath: options, transform: JSON.decodedDictionary)
     }
-
+    
 }
 
 // MARK: - Missing-with-fallback unpacking
-
 extension JSON {
     
     fileprivate func mapOptional<Value>(at path: [JSONPathType], fallback: () -> Value, transform: (JSON) throws -> Value) throws -> Value {
-        return try mapOptional(at: path, alongPath: .missingKeyBecomesNil, transform: transform) ?? fallback()
+        return try mapOptional(at: path, alongPath: .MissingKeyBecomesNil, transform: transform) ?? fallback()
     }
     
     /// Attempts to decode into the returning type from a path into
@@ -500,6 +520,23 @@ extension JSON {
     ///     instance does not match the decoded value.
     public func getInt(at path: JSONPathType..., or fallback: @autoclosure() -> Int) throws -> Int {
         return try mapOptional(at: path, fallback: fallback, transform: Int.init)
+    }
+    
+    /// Retrieves an `UInt` from a path into JSON or a fallback if not found.
+    /// - parameter path: 0 or more `String` or `UInt` that subscript the `JSON`
+    /// - parameter fallback: `UInt` to use when one is missing at the subscript.
+    /// - returns: A numeric `UInt`
+    /// - throws: One of the following errors contained in `JSON.Error`:
+    ///   * `KeyNotFound`: A key `path` does not exist inside a descendant
+    ///     `JSON` dictionary.
+    ///   * `IndexOutOfBounds`: An index `path` is outside the bounds of a
+    ///     descendant `JSON` array.
+    ///   * `UnexpectedSubscript`: A `path` item cannot be used with the
+    ///     corresponding `JSON` value.
+    ///   * `TypeNotConvertible`: The target value's type inside of the `JSON`
+    ///     instance does not match the decoded value.
+    public func getUInt(at path: JSONPathType..., or fallback: @autoclosure() -> UInt) throws -> UInt {
+        return try mapOptional(at: path, fallback: fallback, transform: UInt.init)
     }
     
     /// Retrieves a `String` from a path into JSON or a fallback if not found.

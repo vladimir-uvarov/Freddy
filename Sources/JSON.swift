@@ -16,6 +16,8 @@ public enum JSON {
     case double(Double)
     /// A case for denoting an integer with an associated value of `Swift.Int`.
     case int(Int)
+    /// A case for denoting an unsigned integer with an associated value of `Swift.UInt`.
+    case uint(UInt)
     /// A case for denoting a string with an associated value of `Swift.String`.
     case string(String)
     /// A case for denoting a boolean with an associated value of `Swift.Bool`.
@@ -25,9 +27,8 @@ public enum JSON {
 }
 
 // MARK: - Errors
-
 extension JSON {
-
+    
     /// An enum to encapsulate errors that may arise in working with `JSON`.
     public enum Error: Swift.Error {
         /// The `index` is out of bounds for a JSON array
@@ -39,17 +40,16 @@ extension JSON {
         /// The JSON is not subscriptable with `type`
         case unexpectedSubscript(type: JSONPathType.Type)
         
-        /// Unexpected JSON `value` was found that is not convertible `to` type 
+        /// Unexpected JSON `value` was found that is not convertible `to` type
         case valueNotConvertible(value: JSON, to: Any.Type)
         
         /// The JSON is not serializable to a `String`.
         case stringSerializationError
     }
-
+    
 }
 
 // MARK: - Test Equality
-
 /// Return `true` if `lhs` is equal to `rhs`.
 public func ==(lhs: JSON, rhs: JSON) -> Bool {
     switch (lhs, rhs) {
@@ -67,6 +67,12 @@ public func ==(lhs: JSON, rhs: JSON) -> Bool {
         return intL == intR
     case (.int(let intL), .double(let dubR)):
         return Double(intL) == dubR
+    case (.uint(let uintL), .uint(let uintR)):
+        return uintL == uintR
+    case (.uint(let uintL), .int(let intR)):
+        return uintL == UInt(intR)
+    case (.uint(let uintL), .double(let dubR)):
+        return uintL == UInt(dubR)
     case (.bool(let bL), .bool(let bR)):
         return bL == bR
     case (.null, .null):
@@ -79,9 +85,8 @@ public func ==(lhs: JSON, rhs: JSON) -> Bool {
 extension JSON: Equatable {}
 
 // MARK: - Printing
-
 extension JSON: CustomStringConvertible {
-
+    
     /// A textual representation of `self`.
     public var description: Swift.String {
         switch self {
@@ -90,9 +95,10 @@ extension JSON: CustomStringConvertible {
         case .string(let string):   return string
         case .double(let double):   return String(describing: double)
         case .int(let int):         return String(describing: int)
+        case .uint(let uint):       return String(describing: uint)
         case .bool(let bool):       return String(describing: bool)
         case .null:                 return "null"
         }
     }
-
+    
 }
